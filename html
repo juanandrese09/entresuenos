@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escapando del Sueño Púrpura</title>
+    <style>
+        /* Variables CSS para colores y estilos */
+        :root {
+            --primary-color: #1a0033; /* Fondo oscuro principal */
+            --secondary-color: #4b0082; /* Color secundario/entidades */
+            --accent-color: #8a2be2; /* Color de acento/bordes */
+            --light-color: #e6ccff; /* Color claro/jugador */
+            --white-color: #ffffff; /* Blanco puro */
+            --game-background: linear-gradient(135deg, #2a0052, #4b0082); /* Gradiente para el área de juego */
+            --bar-gradient: linear-gradient(90deg, #9370db, #e6e6fa); /* Gradiente para la barra */
+            --button-gradient: linear-gradient(to right, #9370db, #8a2be2); /* Gradiente para botones */
+            --button-gradient-hover: linear-gradient(to right, #8a2be2, #6a0dad); /* Gradiente para botones (hover) */
+            --shadow-color: rgba(147, 112, 219, 0.5); /* Color de sombra púrpura */
+            --danger-color: #ff4d4d; /* Color para indicar peligro o pérdida de vida */
+        }
+
+        /* Reset básico y configuración global */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--primary-color);
+            color: var(--light-color);
+            overflow: hidden; /* Evita barras de scroll */
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Ocupa toda la altura de la ventana */
+            touch-action: none; /* Deshabilita el scroll táctil por defecto */
+        }
+
+        /* Contenedor principal del juego */
+        #game-container {
+            position: relative;
+            flex-grow: 1; /* Ocupa el espacio restante */
+            background: var(--game-background);
+            border: 4px solid var(--accent-color);
+            margin: 20px;
+            box-shadow: 0 0 20px var(--shadow-color);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border-radius: 10px; /* Bordes redondeados */
+        }
+
+        /* Estilo del jugador */
+        #player {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: var(--light-color);
+            border-radius: 50%; /* Forma circular */
+            transition: transform 0.1s ease, opacity 0.3s ease; /* Transición suave para movimientos y opacidad */
+            z-index: 10;
+            box-shadow: 0 0 10px var(--white-color); /* Resplandor */
+        }
+
+        /* Estilo para el jugador invencible (parpadeo) */
+        #player.invincible {
+            animation: flicker 0.5s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+
+        /* Estilo base para obstáculos */
+        .dream-obstacle {
+            position: absolute;
+            background-color: rgba(106, 13, 173, 0.7);
+            border: 2px solid #9932cc;
+            border-radius: 5px;
+        }
+
+        /* Animación para algunos obstáculos */
+        .obstacle-animated {
+            animation: pulse 4s infinite alternate;
+        }
+
+        /* Estilo para fragmentos de realidad (coleccionables) */
+        .reality-fragment {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--white-color), 0 0 30px var(--white-color);
+            animation: pulse 2s infinite; /* Animación de pulso */
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer; /* Indica que es interactuable */
+        }
+
+        .reality-fragment:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 20px var(--white-color), 0 0 40px var(--white-color);
+        }
+
+        /* Estilo base para entidades del sueño */
+        .dream-entity {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background-color: var(--secondary-color);
+            border-radius: 8px;
+            animation: float 4s infinite ease-in-out; /* Animación de flotación */
+            transition: all 0.3s ease;
+        }
+
+        /* Estilo para entidades "cazadoras" */
+        .dream-entity.hunter {
+            background-color: #3b0068;
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        /* Contenedor de la barra de despertar */
+        #awakening-bar-container {
+            height: 25px;
+            margin: 0 20px 10px 20px;
+            background-color: #2a0052;
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5); /* Sombra interna */
+        }
+
+        /* Barra de despertar */
+        #awakening-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--bar-gradient);
+            transition: width 0.5s ease-out; /* Transición suave al llenarse */
+        }
+
+        /* Contenedor de la interfaz de usuario (mensajes, controles, vidas) */
+        #ui-container {
+            padding: 10px 20px;
+            text-align: center;
+            min-height: 60px; /* Altura mínima para evitar saltos */
+            display: flex; /* Usar flexbox para alinear elementos */
+            justify-content: space-between; /* Espacio entre elementos */
+            align-items: center; /* Alinear verticalmente */
+        }
+
+        #message {
+            font-size: 16px;
+            flex-grow: 1; /* Ocupa el espacio central */
+            text-align: center;
+            min-height: 20px;
+            color: var(--light-color);
+        }
+
+        .controls {
+            font-size: 14px;
+            opacity: 0.8;
+            color: var(--light-color);
+        }
+
+        /* Estilo para el contador de vidas */
+        #lives-counter {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--white-color);
+            min-width: 80px; /* Ancho mínimo para evitar saltos */
+            text-align: right;
+        }
+
+
+        /* Animaciones */
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.7; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(10px) rotate(180deg); }
+            100% { transform: translateY(0) rotate(360deg); }
+        }
+
+        /* Ondas de sueño de fondo */
+        .dream-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%; /* Más ancho que el contenedor para el efecto de movimiento */
+            height: 10%;
+            background: rgba(106, 13, 173, 0.3);
+            animation: wave 15s linear infinite;
+            z-index: 1;
+            border-radius: 50% 50% 0 0; /* Forma de onda */
+        }
+
+        .dream-wave:nth-child(2) {
+            bottom: 5%;
+            opacity: 0.5;
+            animation: wave 17s linear infinite;
+            animation-delay: -5s; /* Desfase para la segunda onda */
+        }
+
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); } /* Mueve la onda a la izquierda */
+        }
+
+        /* Pantallas superpuestas (inicio, fin, victoria, pausa) */
+        #game-over, #victory-screen, #start-screen, #pause-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(26, 0, 51, 0.95); /* Fondo semi-transparente oscuro */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: var(--white-color);
+            text-align: center;
+        }
+
+        #start-screen {
+             /* Este empieza visible por defecto */
+            background: linear-gradient(135deg, rgba(26, 0, 51, 0.98), rgba(75, 0, 130, 0.98));
+        }
+
+        #start-screen h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px var(--shadow-color);
+        }
+
+        #start-screen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            max-width: 600px;
+            line-height: 1.5;
+            padding: 0 15px; /* Padding en móviles */
+        }
+
+        /* Estilo base para botones */
+        button {
+            background: var(--button-gradient);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px; /* Espacio entre botones */
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* Sombra para botones */
+        }
+
+        button:hover {
+            background: var(--button-gradient-hover);
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+         button:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+         }
+
+
+        #start-button {
+            font-size: 20px;
+            padding: 15px 40px;
+            margin-top: 30px;
+            box-shadow: 0 0 15px var(--shadow-color);
+        }
+
+        #start-button:hover {
+            box-shadow: 0 0 20px var(--shadow-color), 0 0 30px rgba(147, 112, 219, 0.9);
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px var(--shadow-color);
+        }
+
+        /* Indicador de nivel */
+        #level-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(106, 13, 173, 0.7);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 5;
+            color: var(--white-color);
+        }
+
+        /* Animación de temblor (para game over) */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Controles móviles */
+        #mobile-controls {
+            display: none; /* Oculto por defecto, se muestra en media query */
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            user-select: none; /* Evita selección de texto */
+            -webkit-user-select: none; /* Para Safari */
+            -ms-user-select: none; /* Para IE 10+ */
+            -moz-user-select: none; /* Para Firefox */
+            touch-action: manipulation; /* Mejora la respuesta táctil */
+        }
+
+        .mobile-button {
+            width: 60px;
+            height: 60px;
+            /* Hacer el fondo translúcido */
+            background-color: rgba(106, 13, 173, 0.4); /* Color con 40% de opacidad */
+            border: 2px solid var(--accent-color);
+            border-radius: 50%;
+            margin: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--white-color);
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: background-color 0.1s ease, transform 0.1s ease;
+        }
+
+        .mobile-button:active {
+            /* Mantener algo de translucidez al presionar */
+            background-color: rgba(138, 43, 226, 0.6); /* Color de acento con 60% de opacidad */
+            transform: scale(0.95);
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Efectos visuales dinámicos */
+        .dream-pulse {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none; /* No bloquea eventos del ratón/táctiles */
+            opacity: 0; /* Empieza invisible */
+            transform: scale(0); /* Empieza pequeño */
+        }
+
+         .dream-fog {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.1; /* Niebla sutil */
+            background-color: rgba(138, 43, 226, 0.1); /* Color de acento semi-transparente */
+            animation: subtle-move 10s infinite ease-in-out alternate;
+         }
+
+        @keyframes subtle-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(20px, 10px); }
+         }
+
+
+        /* Botón de pausa */
+        #pause-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(106, 13, 173, 0.7);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 5;
+            color: var(--white-color);
+        }
+
+        /* Contenedor de partículas de fondo */
+        #particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0; /* Detrás de los elementos del juego */
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: rgba(230, 204, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* Estilo para la recompensa final */
+        #final-reward {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(147, 112, 219, 0.3);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #final-reward h3 {
+            margin-top: 0;
+            color: var(--white-color);
+        }
+
+        #final-reward p {
+            margin-bottom: 10px;
+        }
+
+        #final-reward a {
+            color: var(--light-color);
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        /* Media query para dispositivos móviles */
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: block; /* Muestra los controles móviles */
+            }
+
+            #game-container {
+                margin: 10px;
+            }
+
+            .controls {
+                display: none; /* Oculta los controles de teclado en móviles */
+            }
+
+            .mobile-button {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+                 /* Ajustar opacidad para botones móviles en pantallas pequeñas */
+                background-color: rgba(106, 13, 173, 0.5); /* Un poco más opaco en móviles */
+            }
+
+            .mobile-button:active {
+                 background-color: rgba(138, 43, 226, 0.7); /* Un poco más opaco al presionar en móviles */
+            }
+
+
+            #start-screen h1 {
+                font-size: 28px;
+            }
+
+            #start-screen p {
+                font-size: 16px;
+                padding: 0 15px;
+            }
+             #ui-container {
+                flex-direction: column; /* Apila elementos en móviles */
+                padding: 10px;
+             }
+             #message {
+                margin-bottom: 5px;
+             }
+             #lives-counter {
+                text-align: center;
+                margin-top: 5px;
+             }
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-container">
+        <div id="level-indicator"></div>
+        <div id="message"></div>
+        <div id="lives-counter"></div>
+    </div>
+
+    <div id="awakening-bar-container">
+        <div id="awakening-bar"></div>
+    </div>
+
+    <div id="game-container">
+        <div id="player"></div>
+        <div class="dream-wave"></div>
+        <div class="dream-wave"></div>
+        <div id="pause-button">Pausa</div>
+        <div id="particles-container"></div>
+
+        <div id="start-screen">
+            <h1>Escapando del Sueño Púrpura</h1>
+            <p>Estás atrapado en un laberinto onírico. Recoge fragmentos de realidad para despertar y evita a las entidades del sueño.</p>
+            <p class="controls">Controles: Flechas o WASD para mover</p>
+            <p>Completa 10 niveles para escapar completamente.</p>
+            <button id="start-button">Comenzar Aventura</button>
+        </div>
+
+        <div id="game-over">
+            <h2>Has vuelto a caer en el sueño profundo</h2>
+            <p>Las entidades oníricas te han atrapado</p>
+            <button id="restart-button">Intentar de nuevo</button>
+        </div>
+
+        <div id="victory-screen">
+            <h2>¡Has despertado!</h2>
+            <p id="victory-message"></p>
+            <button id="next-level-button"></button>
+            <div id="final-reward" style="display: none;">
+                <h3>¡Recompensa!</h3>
+                <p>Has completado los 10 niveles y has escapado completamente del sueño.</p>
+                <p>Tu recompensa está en el siguiente enlace:</p>
+                <a href="https://www.youtube.com/watch?v=tXDm9Mh4gTU" id="reward-link" target="_blank">ENLACE DE RECOMPENSA</a> </div>
+        </div>
+
+        <div id="pause-menu">
+            <h2>Juego Pausado</h2>
+            <button id="resume-button">Continuar</button>
+            <button id="restart-game-button">Reiniciar Juego</button>
+        </div>
+
+        <div id="mobile-controls">
+            <div class="control-row">
+                <div class="mobile-button" id="up-button">↑</div>
+            </div>
+            <div class="control-row">
+                <div class="mobile-button" id="left-button">←</div>
+                <div class="mobile-button" id="right-button">→</div>
+            </div>
+            <div class="control-row">
+                <div class="mobile-button" id="down-button">↓</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Esperar a que el DOM esté completamente cargado antes de iniciar el script
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("DOM completamente cargado.");
+
+            // --- Referencias a elementos del DOM ---
+            const player = document.getElementById('player');
+            const gameContainer = document.getElementById('game-container');
+            const messageElement = document.getElementById('message');
+            const awakeningBar = document.getElementById('awakening-bar');
+            const gameOverScreen = document.getElementById('game-over');
+            const victoryScreen = document.getElementById('victory-screen');
+            const startScreen = document.getElementById('start-screen');
+            const startButton = document.getElementById('start-button');
+            const restartButton = document.getElementById('restart-button');
+            const nextLevelButton = document.getElementById('next-level-button');
+            const levelIndicator = document.getElementById('level-indicator');
+            const pauseButton = document.getElementById('pause-button');
+            const pauseMenu = document.getElementById('pause-menu');
+            const resumeButton = document.getElementById('resume-button');
+            const restartGameButton = document.getElementById('restart-game-button');
+            const mobileControls = {
+                up: document.getElementById('up-button'),
+                down: document.getElementById('down-button'),
+                left: document.getElementById('left-button'),
+                right: document.getElementById('right-button')
+            };
+            const finalReward = document.getElementById('final-reward');
+            const rewardLink = document.getElementById('reward-link');
+            const particlesContainer = document.getElementById('particles-container');
+            const livesCounter = document.getElementById('lives-counter'); // Referencia al contador de vidas
+
+            console.log("Referencias DOM obtenidas.");
+
+            // --- Variables del juego ---
+            let playerX = 0; // Posición X del jugador
+            let playerY = 0; // Posición Y del jugador
+            let playerSpeed = 5; // Velocidad del jugador
+            let awakeningLevel = 0; // Nivel de despertar actual
+            let requiredAwakening = 100; // Nivel de despertar necesario para pasar de nivel
+            let gameActive = false; // Estado del juego (activo o no)
+            let gamePaused = false; // Estado de pausa
+            let currentLevel = 1; // Nivel actual
+            const maxLevel = 10; // Nivel máximo para ganar
+            let obstacles = []; // Array para almacenar obstáculos
+            let realityFragments = []; // Array para almacenar fragmentos de realidad
+            let dreamEntities = []; // Array para almacenar entidades del sueño
+            let particles = []; // Array para partículas de fondo
+            let lastTimestamp = 0; // Timestamp del último frame para calcular delta time
+            let animationFrameId = null; // ID del requestAnimationFrame
+            let lives = 4; // Número inicial de vidas
+            let isInvincible = false; // Estado de invencibilidad temporal
+
+            // Estado de teclas (usando un objeto para rastrear qué teclas están presionadas)
+            let keys = {
+                "ArrowUp": false, "w": false,
+                "ArrowDown": false, "s": false,
+                "ArrowLeft": false, "a": false,
+                "ArrowRight": false, "d": false
+            };
+
+            // --- Funciones del juego ---
+
+            // Inicializa o reinicia el juego para el nivel actual
+            function initGame() {
+                console.log("Iniciando juego...");
+                gameActive = true;
+                gamePaused = false;
+                awakeningLevel = 0;
+                updateAwakeningBar();
+                score = currentLevel > 1 ? score : 0; // Mantiene el score si no es el primer nivel
+                lives = 4; // Reinicia vidas a 4 al inicio de un nuevo juego
+                updateLivesDisplay(); // Actualiza el contador de vidas
+
+                // Ocultar todas las pantallas de superposición
+                startScreen.style.display = 'none';
+                gameOverScreen.style.display = 'none';
+                victoryScreen.style.display = 'none';
+                pauseMenu.style.display = 'none';
+
+                // Posición inicial del jugador (centrado)
+                const containerRect = gameContainer.getBoundingClientRect();
+                playerX = containerRect.width / 2 - player.offsetWidth / 2;
+                playerY = containerRect.height / 2 - player.offsetHeight / 2;
+                updatePlayerPosition();
+
+                // Limpiar elementos de juego anteriores
+                clearGameElements();
+
+                // Generar nuevos elementos para el nivel actual
+                generateLevel(currentLevel);
+
+                // Crear partículas de fondo
+                createBackgroundParticles();
+
+                // Actualizar indicador de nivel
+                levelIndicator.textContent = `Nivel: ${currentLevel}`;
+                messageElement.textContent = "¡Encuentra fragmentos de realidad para despertar!";
+
+                // Asegurarse de que el jugador no esté invencible al inicio
+                isInvincible = false;
+                player.classList.remove('invincible');
+                player.style.opacity = 1;
+
+
+                // Iniciar el bucle principal del juego
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId); // Cancelar frame anterior si existe
+                }
+                lastTimestamp = performance.now(); // Resetear timestamp
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+
+            // Limpia todos los elementos de juego (obstáculos, fragmentos, entidades) del DOM
+            function clearGameElements() {
+                obstacles.forEach(obs => obs.element.remove());
+                realityFragments.forEach(frag => frag.element.remove());
+                dreamEntities.forEach(entity => entity.element.remove());
+                particles.forEach(particle => particle.element.remove()); // Limpiar partículas
+                obstacles = [];
+                realityFragments = [];
+                dreamEntities = [];
+                particles = [];
+            }
+
+            // Genera obstáculos, fragmentos y entidades para un nivel dado
+            function generateLevel(level) {
+                const containerRect = gameContainer.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                // Número de elementos basado en el nivel
+                const numObstacles = 5 + level * 2;
+                const numFragments = 10 + level * 3;
+                const numEntities = 3 + Math.floor(level / 2);
+
+                // Generar obstáculos
+                for (let i = 0; i < numObstacles; i++) {
+                    const obs = createGameElement('div', 'dream-obstacle');
+                    const width = Math.random() * 100 + 50;
+                    const height = Math.random() * 100 + 50;
+                    const x = Math.random() * (containerWidth - width);
+                    const y = Math.random() * (containerHeight - height);
+                    setElementPosition(obs, x, y, width, height);
+
+                    // Añadir animación a algunos obstáculos en niveles avanzados
+                    if (level >= 3 && Math.random() > 0.5) {
+                         obs.element.classList.add('obstacle-animated');
+                    }
+
+                    obstacles.push({ element: obs.element, x, y, width, height });
+                }
+
+                // Generar fragmentos de realidad
+                for (let i = 0; i < numFragments; i++) {
+                    const frag = createGameElement('div', 'reality-fragment');
+                     // Asegurarse de que no se generen demasiado cerca del borde
+                    const x = Math.random() * (containerWidth - 40) + 20;
+                    const y = Math.random() * (containerHeight - 40) + 20;
+                    setElementPosition(frag, x, y, 20, 20); // Tamaño fijo
+
+                    realityFragments.push({ element: frag.element, x, y, width: 20, height: 20 });
+                }
+
+                // Generar entidades del sueño
+                for (let i = 0; i < numEntities; i++) {
+                    const entity = createGameElement('div', 'dream-entity');
+                    const size = 25;
+                     // Asegurarse de que no se generen demasiado cerca del jugador inicial
+                    let x, y;
+                    do {
+                        x = Math.random() * (containerWidth - size);
+                        y = Math.random() * (containerHeight - size);
+                    } while (getDistance(x, y, playerX, playerY) < 150); // Evita spawnear cerca del jugador
+
+                    setElementPosition(entity, x, y, size, size);
+
+                    const speed = Math.random() * 1 + 0.5 + (level * 0.1); // Velocidad aumenta con el nivel
+                    const angle = Math.random() * Math.PI * 2; // Dirección aleatoria
+                    const dx = Math.cos(angle) * speed;
+                    const dy = Math.sin(angle) * speed;
+
+                    // Algunas entidades persiguen al jugador en niveles avanzados
+                    const isHunter = level >= 5 && Math.random() > 0.7;
+                    if (isHunter) {
+                         entity.element.classList.add('hunter');
+                    }
+
+                    dreamEntities.push({
+                        element: entity.element,
+                        x, y, width: size, height: size,
+                        dx, dy, speed, isHunter
+                    });
+                }
+            }
+
+            // Crea un elemento HTML y lo añade al contenedor del juego
+            function createGameElement(tag, className) {
+                const element = document.createElement(tag);
+                element.className = className;
+                gameContainer.appendChild(element);
+                return { element: element };
+            }
+
+            // Establece la posición y tamaño de un elemento
+            function setElementPosition(item, x, y, width, height) {
+                item.element.style.left = x + 'px';
+                item.element.style.top = y + 'px';
+                item.element.style.width = width + 'px';
+                item.element.style.height = height + 'px';
+                item.x = x;
+                item.y = y;
+                item.width = width;
+                item.height = height;
+            }
+
+            // Actualiza la posición del jugador en el DOM
+            function updatePlayerPosition() {
+                 const containerRect = gameContainer.getBoundingClientRect();
+                 const playerWidth = player.offsetWidth;
+                 const playerHeight = player.offsetHeight;
+
+                 // Limitar movimiento dentro del contenedor
+                 playerX = Math.max(0, Math.min(playerX, containerRect.width - playerWidth));
+                 playerY = Math.max(0, Math.min(playerY, containerRect.height - playerHeight));
+
+                 player.style.left = playerX + 'px';
+                 player.style.top = playerY + 'px';
+            }
+
+            // Actualiza la barra de despertar
+            function updateAwakeningBar() {
+                const percentage = (awakeningLevel / requiredAwakening) * 100;
+                awakeningBar.style.width = percentage + '%';
+
+                // Cambiar color o añadir efecto al llenarse
+                if (percentage >= 80) {
+                    awakeningBar.style.background = 'linear-gradient(90deg, #e6e6fa, #ffffff)';
+                } else {
+                     awakeningBar.style.background = 'linear-gradient(90deg, #9370db, #e6e6fa)'; // Usar la variable CSS
+                }
+            }
+
+            // Función para actualizar el contador de vidas
+            function updateLivesDisplay() {
+                livesCounter.textContent = `Vidas: ${lives}`;
+                // Acceder a variables CSS correctamente en JavaScript
+                const rootStyles = getComputedStyle(document.documentElement);
+
+                if (lives <= 1) {
+                     livesCounter.style.color = rootStyles.getPropertyValue('--danger-color');
+                } else {
+                     livesCounter.style.color = rootStyles.getPropertyValue('--white-color');
+                }
+            }
+
+
+            // Crea partículas de fondo animadas
+            function createBackgroundParticles() {
+                // Limpiamos las partículas existentes
+                while (particlesContainer.firstChild) {
+                    particlesContainer.removeChild(particlesContainer.firstChild);
+                }
+                particles = []; // Limpiar array de partículas
+
+                // Número de partículas basado en el nivel
+                const particleCount = 30 + (currentLevel * 5);
+                const containerRect = gameContainer.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+
+                    // Posición aleatoria dentro del contenedor
+                    const x = Math.random() * containerWidth;
+                    const y = Math.random() * containerHeight;
+
+                    // Velocidad y dirección aleatorias
+                    const speed = Math.random() * 0.5 + 0.1;
+                    const angle = Math.random() * Math.PI * 2;
+                    const dx = Math.cos(angle) * speed;
+                    const dy = Math.sin(angle) * speed;
+
+                    // Tamaño aleatorio
+                    const size = Math.random() * 3 + 1;
+
+                    // Aplicar propiedades
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.width = size + 'px';
+                    particle.style.height = size + 'px';
+                    particle.style.opacity = Math.random() * 0.5 + 0.2;
+
+                    particlesContainer.appendChild(particle);
+
+                    particles.push({
+                        element: particle,
+                        x: x,
+                        y: y,
+                        dx: dx,
+                        dy: dy,
+                        size: size
+                    });
+                }
+            }
+
+             // Actualiza la posición y animación de las partículas de fondo
+            function updateParticles() {
+                const containerRect = gameContainer.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                particles.forEach(particle => {
+                    particle.x += particle.dx;
+                    particle.y += particle.dy;
+
+                    // Reaparecer partículas si salen de los límites
+                    if (particle.x < 0) particle.x = containerWidth;
+                    if (particle.x > containerWidth) particle.x = 0;
+                    if (particle.y < 0) particle.y = containerHeight;
+                    if (particle.y > containerHeight) particle.y = 0;
+
+                    particle.element.style.left = particle.x + 'px';
+                    particle.element.style.top = particle.y + 'px';
+                });
+            }
+
+
+            // Actualiza la lógica de las entidades del sueño
+            function updateEntities(deltaTime) {
+                 const containerRect = gameContainer.getBoundingClientRect();
+
+                 dreamEntities.forEach(entity => {
+                     if (entity.isHunter) {
+                         // Lógica de persecución: mover hacia el jugador
+                         const angleToPlayer = Math.atan2(playerY - entity.y, playerX - entity.x);
+                         entity.dx = Math.cos(angleToPlayer) * entity.speed;
+                         entity.dy = Math.sin(angleToPlayer) * entity.speed;
+                     } else {
+                         // Movimiento aleatorio con rebote en bordes
+                         if (entity.x + entity.width > containerRect.width || entity.x < 0) {
+                             entity.dx *= -1; // Invertir dirección X
+                         }
+                         if (entity.y + entity.height > containerRect.height || entity.y < 0) {
+                             entity.dy *= -1; // Invertir dirección Y
+                         }
+                     }
+
+                     // Aplicar movimiento
+                     entity.x += entity.dx * deltaTime;
+                     entity.y += entity.dy * deltaTime;
+
+                     // Limitar la posición para evitar que se salgan completamente
+                     entity.x = Math.max(0, Math.min(entity.x, containerRect.width - entity.width));
+                     entity.y = Math.max(0, Math.min(entity.y, containerRect.height - entity.height));
+
+
+                     // Actualizar posición en el DOM
+                     entity.element.style.left = entity.x + 'px';
+                     entity.element.style.top = entity.y + 'px';
+                 });
+            }
+
+
+            // Detecta colisiones entre dos rectángulos
+            function isColliding(rect1, rect2) {
+                return rect1.x < rect2.x + rect2.width &&
+                       rect1.x + rect1.width > rect2.x &&
+                       rect1.y < rect2.y + rect2.height &&
+                       rect1.y + rect2.height > rect2.y;
+            }
+
+            // Verifica colisiones del jugador con otros elementos
+            function checkCollisions() {
+                const playerRect = {
+                    x: playerX,
+                    y: playerY,
+                    width: player.offsetWidth,
+                    height: player.offsetHeight
+                };
+
+                // Colisión con fragmentos de realidad
+                for (let i = realityFragments.length - 1; i >= 0; i--) {
+                    const fragment = realityFragments[i];
+                    const fragmentRect = {
+                        x: fragment.x,
+                        y: fragment.y,
+                        width: fragment.width,
+                        height: fragment.height
+                    };
+
+                    if (isColliding(playerRect, fragmentRect)) {
+                        // Colisión detectada con un fragmento
+                        awakeningLevel += 10; // Aumentar nivel de despertar
+                        awakeningLevel = Math.min(awakeningLevel, requiredAwakening); // Limitar al máximo
+                        updateAwakeningBar();
+
+                        // Eliminar fragmento del juego
+                        fragment.element.remove();
+                        realityFragments.splice(i, 1);
+
+                        // Efecto visual de recolección
+                        createParticleEffect(fragment.x + fragment.width / 2, fragment.y + fragment.height / 2, '#e6ccff', 10);
+
+                        // Comprobar si se ha despertado lo suficiente para pasar de nivel
+                        if (awakeningLevel >= requiredAwakening) {
+                            victory();
+                        }
+                    }
+                }
+
+                // Colisión con obstáculos (detiene al jugador)
+                obstacles.forEach(obstacle => {
+                     const obstacleRect = {
+                         x: obstacle.x,
+                         y: obstacle.y,
+                         width: obstacle.width,
+                         height: obstacle.height
+                     };
+
+                     if (isColliding(playerRect, obstacleRect)) {
+                         // Simple lógica de rebote: mover al jugador fuera del obstáculo
+                         const overlapX = Math.min(playerRect.x + playerRect.width - obstacleRect.x, obstacleRect.x + obstacleRect.width - playerRect.x);
+                         const overlapY = Math.min(playerRect.y + playerRect.height - obstacleRect.y, obstacleRect.y + obstacleRect.height - playerRect.y);
+
+                         if (overlapX < overlapY) {
+                             // Rebote horizontal
+                             if (playerRect.x < obstacleRect.x) playerX -= overlapX;
+                             else playerX += overlapX;
+                         } else {
+                             // Rebote vertical
+                             if (playerRect.y < obstacleRect.y) playerY -= overlapY;
+                             else playerY += overlapY;
+                         }
+                         updatePlayerPosition(); // Actualizar la posición del jugador después del rebote
+                     }
+                });
+
+                // Colisión con entidades del sueño (Ahora resta vidas)
+                dreamEntities.forEach(entity => {
+                    const entityRect = {
+                        x: entity.x,
+                        y: entity.y,
+                        width: entity.width,
+                        height: entity.height
+                    };
+
+                    // Solo colisionar si el jugador no es invencible
+                    if (isColliding(playerRect, entityRect) && !isInvincible) {
+                        lives--; // Restar una vida
+                        updateLivesDisplay(); // Actualizar el contador de vidas
+
+                        if (lives <= 0) {
+                            // Si las vidas llegan a 0, Game Over
+                            gameOver();
+                        } else {
+                            // Si aún quedan vidas, activar invencibilidad temporal
+                            activateInvincibility(2000); // 2 segundos de invencibilidad
+                            // Efecto visual de ser golpeado (opcional, puedes añadir más)
+                            createParticleEffect(playerX + player.offsetWidth / 2, playerY + player.offsetHeight / 2, getComputedStyle(document.documentElement).getPropertyValue('--danger-color'), 15); // Usar color de peligro
+                        }
+                    }
+                });
+            }
+
+            // Función para activar la invencibilidad temporal
+            function activateInvincibility(duration) {
+                 isInvincible = true;
+                 player.classList.add('invincible'); // Añadir clase para animación/estilo
+
+                 setTimeout(() => {
+                     isInvincible = false;
+                     player.classList.remove('invincible');
+                     player.style.opacity = 1; // Asegurarse de que la opacidad vuelva a la normalidad
+                 }, duration);
+            }
+
+
+            // Crea un efecto de partículas en una posición dada
+            function createParticleEffect(x, y, color, count) {
+                 for (let i = 0; i < count; i++) {
+                     const particle = document.createElement('div');
+                     particle.className = 'dream-pulse';
+                     gameContainer.appendChild(particle);
+
+                     const size = Math.random() * 10 + 5;
+                     particle.style.width = size + 'px';
+                     particle.style.height = size + 'px';
+                     particle.style.backgroundColor = color;
+                     particle.style.left = (x - size / 2) + 'px';
+                     particle.style.top = (y - size / 2) + 'px';
+
+                     // Animación de expansión y desvanecimiento
+                     const animation = particle.animate([
+                         { transform: 'scale(0)', opacity: 1 },
+                         { transform: 'scale(2)', opacity: 0 }
+                     ], {
+                         duration: Math.random() * 800 + 400, // Duración aleatoria
+                         easing: 'ease-out'
+                     });
+
+                     // Eliminar la partícula después de la animación
+                     animation.onfinish = () => particle.remove();
+                 }
+            }
+
+            // Calcula la distancia entre dos puntos
+            function getDistance(x1, y1, x2, y2) {
+                 const dx = x2 - x1;
+                 const dy = y2 - y1;
+                 return Math.sqrt(dx * dx + dy * dy);
+            }
+
+
+            // Función de victoria
+            function victory() {
+                gameActive = false; // Detener el bucle del juego
+
+                // Mostrar pantalla de victoria
+                victoryScreen.style.display = 'flex';
+
+                // Efectos visuales
+                createParticleEffect(playerX + player.offsetWidth / 2, playerY + player.offsetHeight / 2, '#ffffff', 50); // Partículas al ganar
+
+                // Configurar textos y botones según si es el último nivel
+                if (currentLevel < maxLevel) {
+                    document.getElementById('victory-message').textContent = `¡Has superado el nivel ${currentLevel}!`;
+                    document.getElementById('next-level-button').textContent = 'Siguiente Nivel';
+                    finalReward.style.display = 'none'; // Ocultar recompensa final
+                } else {
+                    document.getElementById('victory-message').textContent = `¡Has completado todos los niveles y escapado del sueño!`;
+                    document.getElementById('next-level-button').textContent = 'Jugar de nuevo'; // Cambiar texto del botón
+                    finalReward.style.display = 'block'; // Mostrar recompensa final
+                    // Establecer el enlace de recompensa proporcionado por el usuario
+                    rewardLink.href = 'https://www.youtube.com/watch?v=tXDm9Mh4gTU';
+                }
+                 // Cancelar el bucle de animación actual
+                 if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                 }
+            }
+
+            // Función de game over
+            function gameOver() {
+                gameActive = false; // Detener el bucle del juego
+                player.style.animation = "shake 0.5s"; // Añadir animación de temblor
+
+                // Mostrar pantalla de game over
+                gameOverScreen.style.display = 'flex';
+
+                 // Cancelar el bucle de animación actual
+                 if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                 }
+            }
+
+            // Bucle principal del juego (se ejecuta en cada frame)
+            function gameLoop(timestamp) {
+                // Calcular el tiempo transcurrido desde el último frame
+                const deltaTime = timestamp - lastTimestamp;
+                lastTimestamp = timestamp;
+
+                // Solo actualizar si el juego está activo y no pausado
+                if (gameActive && !gamePaused) {
+                    // Actualizar la posición del jugador basándose en las teclas presionadas
+                    let moveX = 0;
+                    let moveY = 0;
+                    // Comprobar tanto WASD como teclas de flecha
+                    if (keys.ArrowUp || keys.w) moveY = -1;
+                    if (keys.ArrowDown || keys.s) moveY = 1;
+                    if (keys.ArrowLeft || keys.a) moveX = -1;
+                    if (keys.ArrowRight || keys.d) moveX = 1;
+
+                    // Normalizar movimiento diagonal para evitar que sea más rápido
+                    if (moveX !== 0 && moveY !== 0) {
+                        const magnitude = Math.sqrt(moveX * moveX + moveY * moveY);
+                        moveX /= magnitude;
+                        moveY /= magnitude;
+                    }
+
+                    // Aplicar movimiento (considerando deltaTime para consistencia en diferentes FPS)
+                    playerX += moveX * playerSpeed * (deltaTime / 16); // Normalizar a ~60 FPS
+                    playerY += moveY * playerSpeed * (deltaTime / 16);
+
+                    // Actualizar la posición del jugador en el DOM y verificar límites
+                    updatePlayerPosition();
+
+                    // Actualizar la lógica de las entidades del sueño
+                    updateEntities(deltaTime / 16); // Pasar deltaTime normalizado
+
+                    // Actualizar la posición y animación de las partículas de fondo
+                    updateParticles();
+
+                    // Verificar colisiones
+                    checkCollisions();
+                }
+
+                // Solicitar el siguiente frame si el juego está activo o pausado (para mostrar el menú de pausa)
+                if (gameActive || gamePaused) {
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                }
+            }
+
+            // Función para pausar/reanudar el juego
+            function togglePause() {
+                console.log("togglePause llamado. gamePaused ANTES:", gamePaused); // Log de depuración ANTES
+
+                // Solo permitir pausar/reanudar si el juego está activo (no en pantallas de inicio/fin)
+                if (!gameActive && !gamePaused) { // Añadida comprobación adicional para evitar pausa al inicio
+                     console.log("Juego no activo y no pausado inicialmente, no se pausa/reanuda.");
+                     return;
+                }
+
+
+                gamePaused = !gamePaused;
+                console.log("Nuevo estado de gamePaused DESPUÉS:", gamePaused); // Log de depuración DESPUÉS
+
+                if (gamePaused) {
+                    pauseMenu.style.display = 'flex';
+                    console.log("Mostrando menú de pausa.");
+                     if (animationFrameId) {
+                        cancelAnimationFrame(animationFrameId); // Detener el bucle de animación
+                        animationFrameId = null;
+                        console.log("Bucle de animación cancelado.");
+                     }
+                } else {
+                    pauseMenu.style.display = 'none';
+                    console.log("Ocultando menú de pausa.");
+                    lastTimestamp = performance.now(); // Resetear el timestamp para evitar saltos de tiempo
+                    animationFrameId = requestAnimationFrame(gameLoop); // Reanudar el bucle de animación
+                    console.log("Bucle de animación reanudado.");
+                }
+            }
+
+            // --- Event Listeners ---
+
+            // Eventos de teclado para movimiento y pausa
+            document.addEventListener('keydown', function(e) {
+                const key = e.key; // Usar el valor original de la tecla
+                const lowerKey = key.toLowerCase(); // Versión en minúsculas para WASD
+
+                // **CORRECCIÓN:** Prevenir comportamiento predeterminado para todas las teclas de movimiento relevantes
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(lowerKey)) {
+                    e.preventDefault(); // Prevenir el scroll de la página con las flechas/WASD
+                    console.log('Tecla de movimiento presionada:', key, ' (', lowerKey, ')'); // Log de depuración
+                }
+
+                // Asegurarse de que la clave sea una de las teclas de movimiento definidas
+                // Usar la clave original para las flechas ('ArrowUp', etc.) y la versión en minúsculas para WASD
+                if (key in keys || lowerKey in keys) {
+                    // Usar la clave correcta para actualizar el objeto keys
+                    const keyToUpdate = key in keys ? key : lowerKey;
+                    keys[keyToUpdate] = true;
+                    console.log('Estado de keys[', keyToUpdate, ']:', keys[keyToUpdate]); // Log del estado de la tecla
+                }
+
+                // Tecla para pausar (P o Escape) - Solo si el juego está activo
+                if ((lowerKey === 'p' || key === 'Escape') && gameActive) {
+                    togglePause();
+                }
+            });
+
+            document.addEventListener('keyup', function(e) {
+                 const key = e.key; // Usar el valor original de la tecla
+                 const lowerKey = key.toLowerCase(); // Versión en minúsculas para WASD
+
+                 // **CORRECCIÓN:** Log para depurar teclas de movimiento soltadas
+                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(lowerKey)) {
+                     console.log('Tecla de movimiento soltada:', key, ' (', lowerKey, ')'); // Log de depuración
+                 }
+
+
+                 // Asegurarse de que la clave sea una de las teclas de movimiento definidas
+                 // Usar la clave correcta para actualizar el objeto keys
+                if (key in keys || lowerKey in keys) {
+                    const keyToUpdate = key in keys ? key : lowerKey;
+                    keys[keyToUpdate] = false;
+                    console.log('Estado de keys[', keyToUpdate, ']:', keys[keyToUpdate]); // Log del estado de la tecla
+                }
+            });
+
+            // Eventos táctiles para controles móviles (si el dispositivo soporta touch)
+            if ('ontouchstart' in window) {
+                // Mostrar controles móviles si es un dispositivo táctil
+                mobileControls.up.parentElement.parentElement.style.display = 'block';
+
+                // Función genérica para manejar eventos táctiles de botones
+                function setupMobileButton(buttonElement, keyName) {
+                    buttonElement.addEventListener('touchstart', (e) => {
+                        e.preventDefault(); // Prevenir zoom o scroll
+                        keys[keyName] = true;
+                         console.log('Touchstart en', keyName, '. Estado:', keys[keyName]); // Log táctil
+                    });
+                    buttonElement.addEventListener('touchend', (e) => {
+                         e.preventDefault();
+                         keys[keyName] = false;
+                         console.log('Touchend en', keyName, '. Estado:', keys[keyName]); // Log táctil
+                    });
+                     buttonElement.addEventListener('touchcancel', (e) => { // Manejar si el toque se cancela
+                         e.preventDefault();
+                         keys[keyName] = false;
+                         console.log('Touchcancel en', keyName, '. Estado:', keys[keyName]); // Log táctil
+                    });
+                }
+
+                // Configurar eventos para cada botón móvil
+                setupMobileButton(mobileControls.up, 'ArrowUp'); // Usar nombres de tecla consistentes
+                setupMobileButton(mobileControls.down, 'ArrowDown');
+                setupMobileButton(mobileControls.left, 'ArrowLeft');
+                setupMobileButton(mobileControls.right, 'ArrowRight');
+            }
+
+            // Botones de interfaz de usuario
+            startButton.addEventListener('click', initGame);
+
+            restartButton.addEventListener('click', function() {
+                console.log("Clic en botón 'Intentar de nuevo' (Game Over).");
+                currentLevel = 1; // Reiniciar al nivel 1
+                initGame();
+            });
+
+            // Añadir logs para verificar si los botones de pausa se encuentran
+            console.log("Configurando event listeners para botones de pausa...");
+
+            if (pauseButton) {
+                pauseButton.addEventListener('click', function() {
+                    console.log("Clic en botón 'Pausa'.");
+                    togglePause();
+                });
+                console.log("Event listener para pauseButton añadido.");
+            } else {
+                console.error("Error: No se encontró el elemento con ID 'pause-button'.");
+            }
+
+            if (resumeButton) {
+                resumeButton.addEventListener('click', function() {
+                    console.log("Clic en botón 'Continuar' (Menú Pausa).");
+                    togglePause(); // Reanudar es lo mismo que pausar de nuevo
+                });
+                 console.log("Event listener para resumeButton añadido.");
+            } else {
+                 console.error("Error: No se encontró el elemento con ID 'resume-button'.");
+            }
+
+            if (restartGameButton) {
+                restartGameButton.addEventListener('click', function() {
+                    console.log("Clic en botón 'Reiniciar Juego' (Menú Pausa).");
+                    currentLevel = 1; // Reiniciar al nivel 1
+                    initGame();
+                });
+                console.log("Event listener para restartGameButton añadido.");
+            } else {
+                 console.error("Error: No se encontró el elemento con ID 'restart-game-button'.");
+            }
+
+
+            nextLevelButton.addEventListener('click', function() {
+                console.log("Clic en botón 'Siguiente Nivel/Jugar de nuevo' (Victoria).");
+                if (currentLevel < maxLevel) {
+                    currentLevel++; // Avanzar al siguiente nivel
+                    initGame(); // Iniciar el nuevo nivel
+                } else {
+                    // Si ya completó el último nivel, reiniciar el juego
+                    currentLevel = 1;
+                    initGame();
+                }
+            });
+
+            // --- Inicio del juego al cargar la página ---
+            // Mostrar la pantalla de inicio por defecto
+            startScreen.style.display = 'flex';
+            gameOverScreen.style.display = 'none';
+            victoryScreen.style.display = 'none';
+            pauseMenu.style.display = 'none'; // Asegurarse de que el menú de pausa esté oculto al inicio
+            levelIndicator.textContent = `Nivel: ${currentLevel}`; // Mostrar nivel inicial
+            messageElement.textContent = "Presiona 'Comenzar Aventura' para empezar.";
+            updateLivesDisplay(); // Mostrar vidas iniciales
+
+
+             // Asegurarse de que los controles móviles estén ocultos al inicio si no es táctil
+             if (!('ontouchstart' in window)) {
+                 mobileControls.up.parentElement.parentElement.style.display = 'none';
+             }
+
+        }); // Fin de DOMContentLoaded
+    </script>
+</body>
+</html>

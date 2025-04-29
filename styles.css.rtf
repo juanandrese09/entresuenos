@@ -1,0 +1,488 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 /* Variables CSS para colores y estilos */\
+:root \{\
+    --primary-color: #1a0033; /* Fondo oscuro principal */\
+    --secondary-color: #4b0082; /* Color secundario/entidades */\
+    --accent-color: #8a2be2; /* Color de acento/bordes */\
+    --light-color: #e6ccff; /* Color claro/jugador */\
+    --white-color: #ffffff; /* Blanco puro */\
+    --game-background: linear-gradient(135deg, #2a0052, #4b0082); /* Gradiente para el \'e1rea de juego */\
+    --bar-gradient: linear-gradient(90deg, #9370db, #e6e6fa); /* Gradiente para la barra */\
+    --button-gradient: linear-gradient(to right, #9370db, #8a2be2); /* Gradiente para botones */\
+    --button-gradient-hover: linear-gradient(to right, #8a2be2, #6a0dad); /* Gradiente para botones (hover) */\
+    --shadow-color: rgba(147, 112, 219, 0.5); /* Color de sombra p\'farpura */\
+    --danger-color: #ff4d4d; /* Color para indicar peligro o p\'e9rdida de vida */\
+\}\
+\
+/* Reset b\'e1sico y configuraci\'f3n global */\
+* \{\
+    box-sizing: border-box;\
+    margin: 0;\
+    padding: 0;\
+\}\
+\
+body \{\
+    font-family: 'Arial', sans-serif;\
+    background-color: var(--primary-color);\
+    color: var(--light-color);\
+    overflow: hidden; /* Evita barras de scroll */\
+    display: flex;\
+    flex-direction: column;\
+    height: 100vh; /* Ocupa toda la altura de la ventana */\
+    touch-action: none; /* Deshabilita el scroll t\'e1ctil por defecto */\
+\}\
+\
+/* Contenedor principal del juego */\
+#game-container \{\
+    position: relative;\
+    flex-grow: 1; /* Ocupa el espacio restante */\
+    background: var(--game-background);\
+    border: 4px solid var(--accent-color);\
+    margin: 20px;\
+    box-shadow: 0 0 20px var(--shadow-color);\
+    overflow: hidden;\
+    transition: all 0.3s ease;\
+    border-radius: 10px; /* Bordes redondeados */\
+\}\
+\
+/* Estilo del jugador */\
+#player \{\
+    position: absolute;\
+    width: 30px;\
+    height: 30px;\
+    background-color: var(--light-color);\
+    border-radius: 50%; /* Forma circular */\
+    transition: transform 0.1s ease, opacity 0.3s ease; /* Transici\'f3n suave para movimientos y opacidad */\
+    z-index: 10;\
+    box-shadow: 0 0 10px var(--white-color); /* Resplandor */\
+\}\
+\
+/* Estilo para el jugador invencible (parpadeo) */\
+#player.invincible \{\
+    animation: flicker 0.5s infinite alternate;\
+\}\
+\
+@keyframes flicker \{\
+    0% \{ opacity: 1; \}\
+    100% \{ opacity: 0.3; \}\
+\}\
+\
+\
+/* Estilo base para obst\'e1culos */\
+.dream-obstacle \{\
+    position: absolute;\
+    background-color: rgba(106, 13, 173, 0.7);\
+    border: 2px solid #9932cc;\
+    border-radius: 5px;\
+\}\
+\
+/* Animaci\'f3n para algunos obst\'e1culos */\
+.obstacle-animated \{\
+    animation: pulse 4s infinite alternate;\
+\}\
+\
+/* Estilo para fragmentos de realidad (coleccionables) */\
+.reality-fragment \{\
+    position: absolute;\
+    width: 20px;\
+    height: 20px;\
+    background-color: white;\
+    border-radius: 50%;\
+    box-shadow: 0 0 15px var(--white-color), 0 0 30px var(--white-color);\
+    animation: pulse 2s infinite; /* Animaci\'f3n de pulso */\
+    transition: transform 0.3s, box-shadow 0.3s;\
+    cursor: pointer; /* Indica que es interactuable */\
+\}\
+\
+.reality-fragment:hover \{\
+    transform: scale(1.3);\
+    box-shadow: 0 0 20px var(--white-color), 0 0 40px var(--white-color);\
+\}\
+\
+/* Estilo base para entidades del sue\'f1o */\
+.dream-entity \{\
+    position: absolute;\
+    width: 25px;\
+    height: 25px;\
+    background-color: var(--secondary-color);\
+    border-radius: 8px;\
+    animation: float 4s infinite ease-in-out; /* Animaci\'f3n de flotaci\'f3n */\
+    transition: all 0.3s ease;\
+\}\
+\
+/* Estilo para entidades "cazadoras" */\
+.dream-entity.hunter \{\
+    background-color: #3b0068;\
+    box-shadow: 0 0 10px var(--accent-color);\
+\}\
+\
+/* Contenedor de la barra de despertar */\
+#awakening-bar-container \{\
+    height: 25px;\
+    margin: 0 20px 10px 20px;\
+    background-color: #2a0052;\
+    border: 2px solid var(--accent-color);\
+    border-radius: 12px;\
+    overflow: hidden;\
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5); /* Sombra interna */\
+\}\
+\
+/* Barra de despertar */\
+#awakening-bar \{\
+    height: 100%;\
+    width: 0%;\
+    background: var(--bar-gradient);\
+    transition: width 0.5s ease-out; /* Transici\'f3n suave al llenarse */\
+\}\
+\
+/* Contenedor de la interfaz de usuario (mensajes, controles, vidas) */\
+#ui-container \{\
+    padding: 10px 20px;\
+    text-align: center;\
+    min-height: 60px; /* Altura m\'ednima para evitar saltos */\
+    display: flex; /* Usar flexbox para alinear elementos */\
+    justify-content: space-between; /* Espacio entre elementos */\
+    align-items: center; /* Alinear verticalmente */\
+\}\
+\
+#message \{\
+    font-size: 16px;\
+    flex-grow: 1; /* Ocupa el espacio central */\
+    text-align: center;\
+    min-height: 20px;\
+    color: var(--light-color);\
+\}\
+\
+.controls \{\
+    font-size: 14px;\
+    opacity: 0.8;\
+    color: var(--light-color);\
+\}\
+\
+/* Estilo para el contador de vidas */\
+#lives-counter \{\
+    font-size: 18px;\
+    font-weight: bold;\
+    color: var(--white-color);\
+    min-width: 80px; /* Ancho m\'ednimo para evitar saltos */\
+    text-align: right;\
+\}\
+\
+\
+/* Animaciones */\
+@keyframes pulse \{\
+    0% \{ transform: scale(0.8); opacity: 0.7; \}\
+    50% \{ transform: scale(1.2); opacity: 1; \}\
+    100% \{ transform: scale(0.8); opacity: 0.7; \}\
+\}\
+\
+@keyframes float \{\
+    0% \{ transform: translateY(0) rotate(0deg); \}\
+    50% \{ transform: translateY(10px) rotate(180deg); \}\
+    100% \{ transform: translateY(0) rotate(360deg); \}\
+\}\
+\
+/* Ondas de sue\'f1o de fondo */\
+.dream-wave \{\
+    position: absolute;\
+    bottom: 0;\
+    left: 0;\
+    width: 200%; /* M\'e1s ancho que el contenedor para el efecto de movimiento */\
+    height: 10%;\
+    background: rgba(106, 13, 173, 0.3);\
+    animation: wave 15s linear infinite;\
+    z-index: 1;\
+    border-radius: 50% 50% 0 0; /* Forma de onda */\
+\}\
+\
+.dream-wave:nth-child(2) \{\
+    bottom: 5%;\
+    opacity: 0.5;\
+    animation: wave 17s linear infinite;\
+    animation-delay: -5s; /* Desfase para la segunda onda */\
+\}\
+\
+@keyframes wave \{\
+    0% \{ transform: translateX(0); \}\
+    100% \{ transform: translateX(-50%); \} /* Mueve la onda a la izquierda */\
+\}\
+\
+/* Pantallas superpuestas (inicio, fin, victoria, pausa) */\
+#game-over, #victory-screen, #start-screen, #pause-menu \{\
+    position: absolute;\
+    top: 0;\
+    left: 0;\
+    width: 100%;\
+    height: 100%;\
+    background-color: rgba(26, 0, 51, 0.95); /* Fondo semi-transparente oscuro */\
+    display: flex;\
+    flex-direction: column;\
+    justify-content: center;\
+    align-items: center;\
+    z-index: 100;\
+    color: var(--white-color);\
+    text-align: center;\
+\}\
+\
+#start-screen \{\
+     /* Este empieza visible por defecto */\
+    background: linear-gradient(135deg, rgba(26, 0, 51, 0.98), rgba(75, 0, 130, 0.98));\
+\}\
+\
+#start-screen h1 \{\
+    font-size: 36px;\
+    margin-bottom: 20px;\
+    text-shadow: 0 0 15px var(--shadow-color);\
+\}\
+\
+#start-screen p \{\
+    font-size: 18px;\
+    margin-bottom: 30px;\
+    max-width: 600px;\
+    line-height: 1.5;\
+    padding: 0 15px; /* Padding en m\'f3viles */\
+\}\
+\
+/* Estilo base para botones */\
+button \{\
+    background: var(--button-gradient);\
+    color: white;\
+    border: none;\
+    padding: 10px 20px;\
+    margin-top: 10px; /* Espacio entre botones */\
+    border-radius: 20px;\
+    cursor: pointer;\
+    font-size: 16px;\
+    transition: all 0.3s ease;\
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* Sombra para botones */\
+\}\
+\
+button:hover \{\
+    background: var(--button-gradient-hover);\
+    transform: scale(1.05);\
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);\
+\}\
+\
+ button:active \{\
+    transform: scale(0.98);\
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);\
+ \}\
+\
+\
+#start-button \{\
+    font-size: 20px;\
+    padding: 15px 40px;\
+    margin-top: 30px;\
+    box-shadow: 0 0 15px var(--shadow-color);\
+\}\
+\
+#start-button:hover \{\
+    box-shadow: 0 0 20px var(--shadow-color), 0 0 30px rgba(147, 112, 219, 0.9);\
+\}\
+\
+h2 \{\
+    font-size: 28px;\
+    margin-bottom: 15px;\
+    text-shadow: 0 0 10px var(--shadow-color);\
+\}\
+\
+/* Indicador de nivel */\
+#level-indicator \{\
+    position: absolute;\
+    top: 10px;\
+    right: 10px;\
+    background-color: rgba(106, 13, 173, 0.7);\
+    padding: 5px 10px;\
+    border-radius: 10px;\
+    font-size: 14px;\
+    z-index: 5;\
+    color: var(--white-color);\
+\}\
+\
+/* Animaci\'f3n de temblor (para game over) */\
+@keyframes shake \{\
+    0%, 100% \{ transform: translateX(0); \}\
+    25% \{ transform: translateX(-5px); \}\
+    75% \{ transform: translateX(5px); \}\
+\}\
+\
+/* Controles m\'f3viles */\
+#mobile-controls \{\
+    display: none; /* Oculto por defecto, se muestra en media query */\
+    position: absolute;\
+    bottom: 20px;\
+    left: 50%;\
+    transform: translateX(-50%);\
+    z-index: 20;\
+    user-select: none; /* Evita selecci\'f3n de texto */\
+    -webkit-user-select: none; /* Para Safari */\
+    -ms-user-select: none; /* Para IE 10+ */\
+    -moz-user-select: none; /* Para Firefox */\
+    touch-action: manipulation; /* Mejora la respuesta t\'e1ctil */\
+\}\
+\
+.mobile-button \{\
+    width: 60px;\
+    height: 60px;\
+    /* Hacer el fondo transl\'facido */\
+    background-color: rgba(106, 13, 173, 0.4); /* Color con 40% de opacidad */\
+    border: 2px solid var(--accent-color);\
+    border-radius: 50%;\
+    margin: 5px;\
+    display: flex;\
+    justify-content: center;\
+    align-items: center;\
+    color: var(--white-color);\
+    font-size: 24px;\
+    cursor: pointer;\
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);\
+    transition: background-color 0.1s ease, transform 0.1s ease;\
+\}\
+\
+.mobile-button:active \{\
+    /* Mantener algo de translucidez al presionar */\
+    background-color: rgba(138, 43, 226, 0.6); /* Color de acento con 60% de opacidad */\
+    transform: scale(0.95);\
+\}\
+\
+.control-row \{\
+    display: flex;\
+    justify-content: center;\
+\}\
+\
+/* Efectos visuales din\'e1micos */\
+.dream-pulse \{\
+    position: absolute;\
+    border-radius: 50%;\
+    pointer-events: none; /* No bloquea eventos del rat\'f3n/t\'e1ctiles */\
+    opacity: 0; /* Empieza invisible */\
+    transform: scale(0); /* Empieza peque\'f1o */\
+\}\
+\
+ .dream-fog \{\
+    position: absolute;\
+    border-radius: 50%;\
+    pointer-events: none;\
+    opacity: 0.1; /* Niebla sutil */\
+    background-color: rgba(138, 43, 226, 0.1); /* Color de acento semi-transparente */\
+    animation: subtle-move 10s infinite ease-in-out alternate;\
+ \}\
+\
+@keyframes subtle-move \{\
+    0% \{ transform: translate(0, 0); \}\
+    100% \{ transform: translate(20px, 10px); \}\
+ \}\
+\
+\
+/* Bot\'f3n de pausa */\
+#pause-button \{\
+    position: absolute;\
+    top: 10px;\
+    left: 10px;\
+    background-color: rgba(106, 13, 173, 0.7);\
+    padding: 5px 10px;\
+    border-radius: 10px;\
+    font-size: 14px;\
+    cursor: pointer;\
+    z-index: 5;\
+    color: var(--white-color);\
+\}\
+\
+/* Contenedor de part\'edculas de fondo */\
+#particles-container \{\
+    position: absolute;\
+    top: 0;\
+    left: 0;\
+    width: 100%;\
+    height: 100%;\
+    pointer-events: none;\
+    z-index: 0; /* Detr\'e1s de los elementos del juego */\
+\}\
+\
+.particle \{\
+    position: absolute;\
+    width: 4px;\
+    height: 4px;\
+    background-color: rgba(230, 204, 255, 0.5);\
+    border-radius: 50%;\
+    pointer-events: none;\
+    opacity: 0.5;\
+\}\
+\
+/* Estilo para la recompensa final */\
+#final-reward \{\
+    margin-top: 20px;\
+    padding: 15px;\
+    background-color: rgba(147, 112, 219, 0.3);\
+    border-radius: 10px;\
+    text-align: center;\
+\}\
+\
+#final-reward h3 \{\
+    margin-top: 0;\
+    color: var(--white-color);\
+\}\
+\
+#final-reward p \{\
+    margin-bottom: 10px;\
+\}\
+\
+#final-reward a \{\
+    color: var(--light-color);\
+    text-decoration: underline;\
+    font-weight: bold;\
+\}\
+\
+/* Media query para dispositivos m\'f3viles */\
+@media (max-width: 768px) \{\
+    #mobile-controls \{\
+        display: block; /* Muestra los controles m\'f3viles */\
+    \}\
+\
+    #game-container \{\
+        margin: 10px;\
+    \}\
+\
+    .controls \{\
+        display: none; /* Oculta los controles de teclado en m\'f3viles */\
+    \}\
+\
+    .mobile-button \{\
+        width: 50px;\
+        height: 50px;\
+        font-size: 20px;\
+         /* Ajustar opacidad para botones m\'f3viles en pantallas peque\'f1as */\
+        background-color: rgba(106, 13, 173, 0.5); /* Un poco m\'e1s opaco en m\'f3viles */\
+    \}\
+\
+    .mobile-button:active \{\
+         background-color: rgba(138, 43, 226, 0.7); /* Un poco m\'e1s opaco al presionar en m\'f3viles */\
+    \}\
+\
+\
+    #start-screen h1 \{\
+        font-size: 28px;\
+    \}\
+\
+    #start-screen p \{\
+        font-size: 16px;\
+        padding: 0 15px;\
+    \}\
+     #ui-container \{\
+        flex-direction: column; /* Apila elementos en m\'f3viles */\
+        padding: 10px;\
+     \}\
+     #message \{\
+        margin-bottom: 5px;\
+     \}\
+     #lives-counter \{\
+        text-align: center;\
+        margin-top: 5px;\
+     \}\
+\}}
